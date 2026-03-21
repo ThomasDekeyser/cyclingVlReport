@@ -58,9 +58,9 @@
 
         <!-- Club -->
         <div class="col-12 col-md-5">
-          <label class="form-label fw-semibold text-secondary small text-uppercase">Club</label>
-          <select class="form-select form-select-sm" v-model="clubName">
-            <option value="">— Selecteer een club —</option>
+          <label class="form-label fw-semibold text-secondary small text-uppercase">Team</label>
+          <select class="form-select form-select-sm" v-model="teamName">
+            <option value="">— Selecteer een team —</option>
             <option value="K.V.C. DEINZE VZW">K.V.C. DEINZE VZW</option>
             <option value="ISOREX CYCLING TEAM">ISOREX CYCLING TEAM</option>
           </select>
@@ -86,56 +86,88 @@
     </div>
   </div>
 
-  <!-- Results table -->
-  <div class="card shadow-sm" v-if="races !== null">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <span class="fw-semibold">Races met een uitslag</span>
-      <span class="badge bg-primary">{{ races.length }}</span>
+  <!-- Results -->
+  <template v-if="races !== null">
+
+    <div v-if="races.length === 0" class="text-muted fst-italic small">
+      Geen races gevonden met een uitslag voor de geselecteerde periode.
     </div>
-    <div class="card-body p-0">
-      <div v-if="races.length === 0" class="p-3 text-muted fst-italic small">
-        Geen races gevonden met een uitslag voor de geselecteerde periode.
+
+    <div v-for="race in sortedRaces" :key="race.id" class="card shadow-sm mb-3">
+      <!-- Race header -->
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>
+          <span class="fw-semibold">{{ race.city }}</span>
+          <span class="text-muted small ms-2">{{ race.date }}</span>
+          <span class="text-muted small ms-2">— {{ race.description }}</span>
+        </span>
+        <span class="badge bg-secondary">ID {{ race.id }}</span>
       </div>
-      <div v-else class="table-responsive">
+
+      <!-- Loading race results -->
+      <div v-if="race.loading" class="card-body py-2 text-muted small">
+        <span class="spinner-border spinner-border-sm me-1"></span> Uitslagen laden…
+      </div>
+
+      <!-- No club results -->
+      <div v-else-if="race.lines && race.lines.length === 0" class="card-body py-2 text-muted fst-italic small">
+        Geen renners van {{ teamName }} in deze uitslag.
+      </div>
+
+      <!-- Rider results table -->
+      <div v-else-if="race.lines && race.lines.length > 0" class="table-responsive">
         <table class="table table-sm table-hover mb-0">
           <thead class="table-light">
             <tr>
-              <th>ID</th>
-              <th>Datum</th>
-              <th>Stad</th>
-              <th>Omschrijving</th>
+              <th>Plaats</th>
+              <th>Naam</th>
+              <th>UCI code</th>
+              <th>Team</th>
+              <th>Club</th>
+              <th>Tijd</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="race in races" :key="race.id">
-              <td class="text-muted small">{{ race.id }}</td>
-              <td class="text-nowrap">{{ race.date }}</td>
-              <td>{{ race.city }}</td>
-              <td>{{ race.description }}</td>
+            <tr v-for="(line, i) in race.lines" :key="i">
+              <td class="fw-semibold">{{ line.place }}</td>
+              <td>{{ line.person.first_name }} {{ line.person.last_name }}</td>
+              <td class="text-muted small">{{ line.person.uci_code }}</td>
+              <td>{{ line.team }}</td>
+              <td>{{ line.club.club_name }}</td>
+              <td class="text-nowrap">{{ formatTime(line.chrono_in_seconds) }}</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-  </div>
+
+  </template>
 
 </div>
 
 <script>
-const { createApp } = Vue;
+const { createApp, reactive } = Vue;
 
 const CYCLING_API = 'https://cycling.vlaanderen/actions/cycling-api-module/api';
 const CORS_PROXY  = 'https://corsproxy.io/?url=';
+
+function proxyFetch(params) {
+  const targetUrl = `${CYCLING_API}?${new URLSearchParams(params)}`;
+  return fetch(`${CORS_PROXY}${encodeURIComponent(targetUrl)}`).then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  });
+}
 
 createApp({
   data() {
     const today = new Date();
     const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(today.getDate() - 3);
+    threeDaysAgo.setDate(today.getDate() - 10);
     return {
       from:     threeDaysAgo,
       to:       today,
-      clubName: '',
+      teamName: '',
       races:    null,
       loading:  false,
       error:    null,
@@ -144,7 +176,15 @@ createApp({
 
   computed: {
     isValid() {
-      return this.from && this.to && this.clubName;
+      return this.from && this.to && this.teamName;
+    },
+    sortedRaces() {
+      if (!this.races) return [];
+      return [...this.races].sort((a, b) => {
+        const aHas = a.lines?.length > 0 ? 0 : 1;
+        const bHas = b.lines?.length > 0 ? 0 : 1;
+        return aHas - bHas || b.date.localeCompare(a.date);
+      });
     },
   },
 
@@ -183,30 +223,55 @@ createApp({
       return `${y}-${m}-${day}`;
     },
 
+    formatTime(seconds) {
+      if (!seconds) return '—';
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+    },
+
     async search() {
       this.error   = null;
       this.races   = null;
       this.loading = true;
 
-      const params = new URLSearchParams({
-        method:     'races.json',
-        from_date:  this.isoDate(this.from),
-        to_date:    this.isoDate(this.to),
-        provinces:  '',
-        categories: '',
-      });
-
       try {
-        const targetUrl = `${CYCLING_API}?${params}`;
-        const res  = await fetch(`${CORS_PROXY}${encodeURIComponent(targetUrl)}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const all  = json?.data?.races ?? [];
-        this.races = all.filter(r => r.result === 1);
+        const json = await proxyFetch({
+          method:     'races.json',
+          from_date:  this.isoDate(this.from),
+          to_date:    this.isoDate(this.to),
+          provinces:  '',
+          categories: '',
+        });
+
+        const allRaces = (json?.data?.races ?? [])
+          .filter(r => r.result === 1)
+          .sort((a, b) => b.date.localeCompare(a.date));
+
+        // Build reactive race objects with a loading flag
+        this.races = allRaces.map(r => reactive({ ...r, lines: null, loading: true }));
+
+        // Fetch all race results in parallel
+        await Promise.all(this.races.map(race => this.fetchRaceResults(race)));
+
       } catch (e) {
         this.error = `Kon de gegevens niet ophalen: ${e.message}`;
       } finally {
         this.loading = false;
+      }
+    },
+
+    async fetchRaceResults(race) {
+      try {
+        const json = await proxyFetch({ method: 'race_results.json', race_id: race.id });
+        const allLines = (json?.data?.race_results ?? [])
+          .flatMap(rr => rr.race_result_lines ?? []);
+        race.lines = allLines.filter(l => l.team === this.teamName);
+      } catch {
+        race.lines = [];
+      } finally {
+        race.loading = false;
       }
     },
   },
