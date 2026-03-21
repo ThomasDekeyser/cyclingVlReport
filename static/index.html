@@ -77,7 +77,7 @@
             Zoeken
           </button>
           <button class="btn btn-success btn-sm"
-                  :disabled="!hasExportableResults"
+                  v-if="hasExportableResults"
                   @click="exportExcel">
             <i class="bi bi-file-earmark-excel me-1"></i>
             Exporteren
