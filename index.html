@@ -1,157 +1,138 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Date Range Selector</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/nl.js"></script>
+  <style>
+    .flatpickr-day.selected,
+    .flatpickr-day.selected:hover  { background: #0d6efd; border-color: #0d6efd; }
+    .flatpickr-day.inRange         {
+      background: #cfe2ff; border-color: #cfe2ff;
+      box-shadow: -5px 0 0 #cfe2ff, 5px 0 0 #cfe2ff;
+    }
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange        { background: #0d6efd; border-color: #0d6efd; }
+    [data-toggle] { cursor: pointer; }
+  </style>
 </head>
 <body class="bg-light min-vh-100 d-flex align-items-center justify-content-center py-4">
 
-  <div id="app" class="w-100" style="max-width: 480px;">
-    <div class="card shadow-sm">
-      <div class="card-header">
-        <h5 class="mb-0">Date Range Selector</h5>
-      </div>
-      <div class="card-body">
+<div id="app" class="w-100" style="max-width: 480px;">
+  <div class="card shadow-sm">
+    <div class="card-header">
+      <h5 class="mb-0">Date Range Selector</h5>
+    </div>
+    <div class="card-body">
 
-        <!-- From -->
-        <div class="mb-3">
-          <label class="form-label fw-semibold text-secondary small text-uppercase">From</label>
-          <div class="row g-2">
-            <div class="col-5">
-              <select class="form-select form-select-sm" v-model="from.year">
-                <option value="">Year</option>
-                <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-              </select>
-            </div>
-            <div class="col-4">
-              <select class="form-select form-select-sm" v-model="from.month">
-                <option value="">Month</option>
-                <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
-              </select>
-            </div>
-            <div class="col-3">
-              <select class="form-select form-select-sm" v-model="from.day">
-                <option value="">Day</option>
-                <option v-for="d in daysFor(from.year, from.month)" :key="d" :value="d">
-                  {{ String(d).padStart(2, '0') }}
-                </option>
-              </select>
-            </div>
+      <label class="form-label fw-semibold text-secondary small text-uppercase">Periode</label>
+
+      <div class="row g-2 mb-1">
+        <!-- Van — wrap mode: data-input is the text field, data-toggle opens the picker -->
+        <div class="col-6">
+          <label class="form-label small mb-1 text-muted">Van</label>
+          <div class="input-group input-group-sm" ref="fromWrap">
+            <input type="text" class="form-control form-control-sm"
+                   placeholder="dd/mm/jjjj" data-input />
+            <span class="input-group-text" data-toggle>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/></svg>
+            </span>
           </div>
         </div>
-
-        <!-- To -->
-        <div class="mb-3">
-          <label class="form-label fw-semibold text-secondary small text-uppercase">To</label>
-          <div class="row g-2">
-            <div class="col-5">
-              <select class="form-select form-select-sm" :class="{ 'is-invalid': rangeError }" v-model="to.year">
-                <option value="">Year</option>
-                <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-              </select>
-            </div>
-            <div class="col-4">
-              <select class="form-select form-select-sm" :class="{ 'is-invalid': rangeError }" v-model="to.month">
-                <option value="">Month</option>
-                <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
-              </select>
-            </div>
-            <div class="col-3">
-              <select class="form-select form-select-sm" :class="{ 'is-invalid': rangeError }" v-model="to.day">
-                <option value="">Day</option>
-                <option v-for="d in daysFor(to.year, to.month)" :key="d" :value="d">
-                  {{ String(d).padStart(2, '0') }}
-                </option>
-              </select>
-            </div>
+        <!-- Tot -->
+        <div class="col-6">
+          <label class="form-label small mb-1 text-muted">Tot</label>
+          <div class="input-group input-group-sm" ref="toWrap">
+            <input type="text" class="form-control form-control-sm"
+                   placeholder="dd/mm/jjjj" data-input />
+            <span class="input-group-text" data-toggle>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/></svg>
+            </span>
           </div>
-          <div class="invalid-feedback d-block" v-if="rangeError">{{ rangeError }}</div>
         </div>
-
-        <hr />
-
-        <!-- Result -->
-        <label class="form-label fw-semibold text-secondary small text-uppercase">Result</label>
-        <pre v-if="isValid" class="bg-white border rounded p-3 mb-0 small">{{ output }}</pre>
-        <p v-else class="text-muted fst-italic small mb-0">Select both dates to see the result…</p>
-
       </div>
+
+      <div class="form-text mb-3"
+           :class="rangeError ? 'text-danger' : 'text-muted'">
+        {{ rangeError || 'Max. 1 jaar' }}
+      </div>
+
+      <hr />
+
+      <label class="form-label fw-semibold text-secondary small text-uppercase">Result</label>
+      <pre v-if="isValid" class="bg-white border rounded p-3 mb-0 small">{{ output }}</pre>
+      <p v-else class="text-muted fst-italic small mb-0">Selecteer een begin- en einddatum…</p>
+
     </div>
   </div>
+</div>
 
-  <script>
-    const { createApp } = Vue;
+<script>
+const { createApp } = Vue;
 
-    createApp({
-      data() {
-        const currentYear = new Date().getFullYear();
-        const years = [];
-        for (let y = currentYear + 5; y >= 1900; y--) years.push(y);
+createApp({
+  data() {
+    return {
+      from: null,
+      to:   null,
+    };
+  },
 
-        const months = [
-          { value: '01', label: 'Jan' }, { value: '02', label: 'Feb' },
-          { value: '03', label: 'Mar' }, { value: '04', label: 'Apr' },
-          { value: '05', label: 'May' }, { value: '06', label: 'Jun' },
-          { value: '07', label: 'Jul' }, { value: '08', label: 'Aug' },
-          { value: '09', label: 'Sep' }, { value: '10', label: 'Oct' },
-          { value: '11', label: 'Nov' }, { value: '12', label: 'Dec' },
-        ];
+  computed: {
+    rangeError() {
+      if (!this.from || !this.to) return null;
+      const diff = this.to - this.from;
+      if (diff < 0) return '"Tot" moet na "Van" liggen.';
+      if (diff > 365 * 864e5) return 'De periode mag niet groter zijn dan 1 jaar.';
+      return null;
+    },
+    isValid() {
+      return this.from && this.to && !this.rangeError;
+    },
+    output() {
+      return JSON.stringify({ from: this.isoDate(this.from), to: this.isoDate(this.to) }, null, 2);
+    },
+  },
 
-        return {
-          years,
-          months,
-          from: { year: '', month: '', day: '' },
-          to:   { year: '', month: '', day: '' },
-        };
-      },
+  mounted() {
+    const shared = {
+      wrap: true,
+      locale: 'nl',
+      dateFormat: 'd/m/Y',
+      disableMobile: true,
+    };
 
-      computed: {
-        fromDate() {
-          const { year, month, day } = this.from;
-          if (!year || !month || !day) return null;
-          return `${year}-${month}-${String(day).padStart(2, '0')}`;
-        },
+    this.fpFrom = flatpickr(this.$refs.fromWrap, {
+      ...shared,
+      onChange: ([date]) => { this.from = date || null; },
+    });
 
-        toDate() {
-          const { year, month, day } = this.to;
-          if (!year || !month || !day) return null;
-          return `${year}-${month}-${String(day).padStart(2, '0')}`;
-        },
+    this.fpTo = flatpickr(this.$refs.toWrap, {
+      ...shared,
+      onChange: ([date]) => { this.to = date || null; },
+    });
+  },
 
-        rangeError() {
-          if (this.fromDate && this.toDate && this.fromDate > this.toDate) {
-            return '"From" date must not be after "To" date.';
-          }
-          return null;
-        },
+  beforeUnmount() {
+    this.fpFrom?.destroy();
+    this.fpTo?.destroy();
+  },
 
-        isValid() {
-          return this.fromDate && this.toDate && !this.rangeError;
-        },
-
-        output() {
-          return JSON.stringify({ from: this.fromDate, to: this.toDate }, null, 2);
-        },
-      },
-
-      methods: {
-        daysFor(year, month) {
-          if (!month) return Array.from({ length: 31 }, (_, i) => i + 1);
-          const count = year ? new Date(Number(year), Number(month), 0).getDate() : 31;
-          return Array.from({ length: count }, (_, i) => i + 1);
-        },
-      },
-
-      watch: {
-        'from.month'() { this.from.day = ''; },
-        'from.year'()  { this.from.day = ''; },
-        'to.month'()   { this.to.day = ''; },
-        'to.year'()    { this.to.day = ''; },
-      },
-    }).mount('#app');
-  </script>
+  methods: {
+    isoDate(d) {
+      if (!d) return null;
+      const y = d.getFullYear().toString().padStart(4, '0');
+      const m = (d.getMonth() + 1).toString().padStart(2, '0');
+      const day = d.getDate().toString().padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    },
+  },
+}).mount('#app');
+</script>
 </body>
 </html>
