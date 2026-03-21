@@ -74,9 +74,12 @@ const { createApp } = Vue;
 
 createApp({
   data() {
+    const today = new Date();
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(today.getDate() - 3);
     return {
-      from: null,
-      to:   null,
+      from: threeDaysAgo,
+      to:   today,
     };
   },
 
@@ -99,11 +102,13 @@ createApp({
 
     this.fpFrom = flatpickr(this.$refs.fromWrap, {
       ...shared,
+      defaultDate: this.from,
       onChange: ([date]) => { this.from = date || null; },
     });
 
     this.fpTo = flatpickr(this.$refs.toWrap, {
       ...shared,
+      defaultDate: this.to,
       onChange: ([date]) => { this.to = date || null; },
     });
   },
