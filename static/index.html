@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cycling VL Report</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/nl.js"></script>
+  <style>
+    .flatpickr-day.selected,
+    .flatpickr-day.selected:hover  { background: #0d6efd; border-color: #0d6efd; }
+    .flatpickr-day.inRange         {
+      background: #cfe2ff; border-color: #cfe2ff;
+      box-shadow: -5px 0 0 #cfe2ff, 5px 0 0 #cfe2ff;
+    }
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange        { background: #0d6efd; border-color: #0d6efd; }
+    [data-toggle] { cursor: pointer; }
+  </style>
+</head>
+<body class="bg-light py-4">
+
+<div id="app" class="container">
+
+  <!-- Filter card -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Cycling VL Report</h5>
+    </div>
+    <div class="card-body">
+
+      <div class="row g-3 align-items-end">
+
+        <!-- Periode -->
+        <div class="col-12 col-md-5">
+          <label class="form-label fw-semibold text-secondary small text-uppercase">Periode</label>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small mb-1 text-muted">Van</label>
+              <div class="input-group input-group-sm" ref="fromWrap">
+                <input type="text" class="form-control form-control-sm" placeholder="dd/mm/jjjj" data-input />
+                <span class="input-group-text" data-toggle><i class="bi bi-calendar"></i></span>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label small mb-1 text-muted">Tot</label>
+              <div class="input-group input-group-sm" ref="toWrap">
+                <input type="text" class="form-control form-control-sm" placeholder="dd/mm/jjjj" data-input />
+                <span class="input-group-text" data-toggle><i class="bi bi-calendar"></i></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Club -->
+        <div class="col-12 col-md-5">
+          <label class="form-label fw-semibold text-secondary small text-uppercase">Club</label>
+          <select class="form-select form-select-sm" v-model="clubName">
+            <option value="">— Selecteer een club —</option>
+            <option value="K.V.C. DEINZE VZW">K.V.C. DEINZE VZW</option>
+            <option value="ISOREX CYCLING TEAM">ISOREX CYCLING TEAM</option>
+          </select>
+        </div>
+
+        <!-- Search button -->
+        <div class="col-12 col-md-2 d-grid">
+          <button class="btn btn-primary btn-sm"
+                  :disabled="!isValid || loading"
+                  @click="search">
+            <span v-if="loading" class="spinner-border spinner-border-sm me-1" role="status"></span>
+            <i v-else class="bi bi-search me-1"></i>
+            Zoeken
+          </button>
+        </div>
+
+      </div>
+
+      <div v-if="error" class="alert alert-danger mt-3 mb-0 py-2 small">
+        <i class="bi bi-exclamation-triangle me-1"></i>{{ error }}
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Results table -->
+  <div class="card shadow-sm" v-if="races !== null">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span class="fw-semibold">Races met een uitslag</span>
+      <span class="badge bg-primary">{{ races.length }}</span>
+    </div>
+    <div class="card-body p-0">
+      <div v-if="races.length === 0" class="p-3 text-muted fst-italic small">
+        Geen races gevonden met een uitslag voor de geselecteerde periode.
+      </div>
+      <div v-else class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Datum</th>
+              <th>Stad</th>
+              <th>Omschrijving</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="race in races" :key="race.id">
+              <td class="text-muted small">{{ race.id }}</td>
+              <td class="text-nowrap">{{ race.date }}</td>
+              <td>{{ race.city }}</td>
+              <td>{{ race.description }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const { createApp } = Vue;
+
+const CYCLING_API = 'https://cycling.vlaanderen/actions/cycling-api-module/api';
+const CORS_PROXY  = 'https://corsproxy.io/?url=';
+
+createApp({
+  data() {
+    const today = new Date();
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(today.getDate() - 3);
+    return {
+      from:     threeDaysAgo,
+      to:       today,
+      clubName: '',
+      races:    null,
+      loading:  false,
+      error:    null,
+    };
+  },
+
+  computed: {
+    isValid() {
+      return this.from && this.to && this.clubName;
+    },
+  },
+
+  mounted() {
+    const shared = {
+      wrap: true,
+      locale: 'nl',
+      dateFormat: 'd/m/Y',
+      disableMobile: true,
+    };
+
+    this.fpFrom = flatpickr(this.$refs.fromWrap, {
+      ...shared,
+      defaultDate: this.from,
+      onChange: ([date]) => { this.from = date || null; },
+    });
+
+    this.fpTo = flatpickr(this.$refs.toWrap, {
+      ...shared,
+      defaultDate: this.to,
+      onChange: ([date]) => { this.to = date || null; },
+    });
+  },
+
+  beforeUnmount() {
+    this.fpFrom?.destroy();
+    this.fpTo?.destroy();
+  },
+
+  methods: {
+    isoDate(d) {
+      if (!d) return null;
+      const y   = d.getFullYear().toString().padStart(4, '0');
+      const m   = (d.getMonth() + 1).toString().padStart(2, '0');
+      const day = d.getDate().toString().padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    },
+
+    async search() {
+      this.error   = null;
+      this.races   = null;
+      this.loading = true;
+
+      const params = new URLSearchParams({
+        method:     'races.json',
+        from_date:  this.isoDate(this.from),
+        to_date:    this.isoDate(this.to),
+        provinces:  '',
+        categories: '',
+      });
+
+      try {
+        const targetUrl = `${CYCLING_API}?${params}`;
+        const res  = await fetch(`${CORS_PROXY}${encodeURIComponent(targetUrl)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const all  = json?.data?.races ?? [];
+        this.races = all.filter(r => r.result === 1);
+      } catch (e) {
+        this.error = `Kon de gegevens niet ophalen: ${e.message}`;
+      } finally {
+        this.loading = false;
+      }
+    },
+  },
+}).mount('#app');
+</script>
+</body>
+</html>
