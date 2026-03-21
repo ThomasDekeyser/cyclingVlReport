@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Date Range Selector</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 480px;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 1.75rem;
+    }
+
+    .date-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+
+    .selects {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    select {
+      flex: 1;
+      padding: 0.5rem 0.4rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #1a1a2e;
+      background: #f9fafb;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.5rem center;
+      padding-right: 1.5rem;
+      transition: border-color 0.15s;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #4f46e5;
+      background-color: #fff;
+    }
+
+    select.year { flex: 1.4; }
+
+    .error {
+      margin-top: 0.75rem;
+      font-size: 0.82rem;
+      color: #ef4444;
+      font-weight: 500;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 1.5rem 0;
+    }
+
+    .output-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #6b7280;
+      margin-bottom: 0.75rem;
+    }
+
+    .output-block {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 0.85rem;
+      color: #1e293b;
+      white-space: pre;
+    }
+
+    .output-block.invalid {
+      color: #9ca3af;
+      font-style: italic;
+      font-family: system-ui, sans-serif;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="card">
+      <h1>Date Range Selector</h1>
+
+      <div class="date-group">
+        <label>From</label>
+        <div class="selects">
+          <select class="year" v-model="from.year">
+            <option value="">Year</option>
+            <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+          </select>
+          <select v-model="from.month">
+            <option value="">Month</option>
+            <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
+          </select>
+          <select v-model="from.day">
+            <option value="">Day</option>
+            <option v-for="d in daysFor(from.year, from.month)" :key="d" :value="d">
+              {{ String(d).padStart(2, '0') }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="date-group">
+        <label>To</label>
+        <div class="selects">
+          <select class="year" v-model="to.year">
+            <option value="">Year</option>
+            <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+          </select>
+          <select v-model="to.month">
+            <option value="">Month</option>
+            <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
+          </select>
+          <select v-model="to.day">
+            <option value="">Day</option>
+            <option v-for="d in daysFor(to.year, to.month)" :key="d" :value="d">
+              {{ String(d).padStart(2, '0') }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <p class="error" v-if="rangeError">{{ rangeError }}</p>
+
+      <hr class="divider" />
+
+      <div class="output-label">Result</div>
+      <div :class="['output-block', { invalid: !isValid }]">{{ output }}</div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const years = [];
+        for (let y = currentYear + 5; y >= 1900; y--) years.push(y);
+
+        const months = [
+          { value: '01', label: 'Jan' }, { value: '02', label: 'Feb' },
+          { value: '03', label: 'Mar' }, { value: '04', label: 'Apr' },
+          { value: '05', label: 'May' }, { value: '06', label: 'Jun' },
+          { value: '07', label: 'Jul' }, { value: '08', label: 'Aug' },
+          { value: '09', label: 'Sep' }, { value: '10', label: 'Oct' },
+          { value: '11', label: 'Nov' }, { value: '12', label: 'Dec' },
+        ];
+
+        return {
+          years,
+          months,
+          from: { year: '', month: '', day: '' },
+          to:   { year: '', month: '', day: '' },
+        };
+      },
+
+      computed: {
+        fromDate() {
+          const { year, month, day } = this.from;
+          if (!year || !month || !day) return null;
+          return `${year}-${month}-${String(day).padStart(2, '0')}`;
+        },
+
+        toDate() {
+          const { year, month, day } = this.to;
+          if (!year || !month || !day) return null;
+          return `${year}-${month}-${String(day).padStart(2, '0')}`;
+        },
+
+        rangeError() {
+          if (this.fromDate && this.toDate && this.fromDate > this.toDate) {
+            return '"From" date must not be after "To" date.';
+          }
+          return null;
+        },
+
+        isValid() {
+          return this.fromDate && this.toDate && !this.rangeError;
+        },
+
+        output() {
+          if (!this.isValid) return 'Select both dates to see the result…';
+          return JSON.stringify({ from: this.fromDate, to: this.toDate }, null, 2);
+        },
+      },
+
+      methods: {
+        daysFor(year, month) {
+          if (!month) return Array.from({ length: 31 }, (_, i) => i + 1);
+          const count = year
+            ? new Date(Number(year), Number(month), 0).getDate()
+            : 31;
+          return Array.from({ length: count }, (_, i) => i + 1);
+        },
+      },
+
+      watch: {
+        'from.month'() { this.from.day = ''; },
+        'from.year'()  { this.from.day = ''; },
+        'to.month'()   { this.to.day = ''; },
+        'to.year'()    { this.to.day = ''; },
+      },
+    }).mount('#app');
+  </script>
+</body>
+</html>
