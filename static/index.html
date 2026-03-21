@@ -10,6 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/nl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
     .flatpickr-day.selected,
     .flatpickr-day.selected:hover  { background: #0d6efd; border-color: #0d6efd; }
@@ -66,14 +67,20 @@
           </select>
         </div>
 
-        <!-- Search button -->
-        <div class="col-12 col-md-2 d-grid">
+        <!-- Search / Export buttons -->
+        <div class="col-12 col-md-2 d-grid gap-2">
           <button class="btn btn-primary btn-sm"
                   :disabled="!isValid || loading"
                   @click="search">
             <span v-if="loading" class="spinner-border spinner-border-sm me-1" role="status"></span>
             <i v-else class="bi bi-search me-1"></i>
             Zoeken
+          </button>
+          <button class="btn btn-success btn-sm"
+                  :disabled="!hasExportableResults"
+                  @click="exportExcel">
+            <i class="bi bi-file-earmark-excel me-1"></i>
+            Exporteren
           </button>
         </div>
 
@@ -186,6 +193,9 @@ createApp({
         return aHas - bHas || b.date.localeCompare(a.date);
       });
     },
+    hasExportableResults() {
+      return this.races?.some(r => r.lines?.length > 0) ?? false;
+    },
   },
 
   mounted() {
@@ -260,6 +270,32 @@ createApp({
       } finally {
         this.loading = false;
       }
+    },
+
+    exportExcel() {
+      const rows = [];
+      for (const race of this.sortedRaces) {
+        if (!race.lines?.length) continue;
+        for (const line of race.lines) {
+          rows.push({
+            Datum:       race.date,
+            Stad:        race.city,
+            Wedstrijd:   race.description,
+            Plaats:      line.place,
+            Voornaam:    line.person.first_name,
+            Achternaam:  line.person.last_name,
+            'UCI code':  line.person.uci_code,
+            Team:        line.team,
+            Club:        line.club?.club_name ?? '',
+            Tijd:        this.formatTime(line.chrono_in_seconds),
+          });
+        }
+      }
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Uitslagen');
+      XLSX.writeFile(wb, `cyclingVlReport-${this.isoDate(this.from)}_${this.isoDate(this.to)}_${this.teamName.replaceAll(' ','_')}.xlsx`);
     },
 
     async fetchRaceResults(race) {
