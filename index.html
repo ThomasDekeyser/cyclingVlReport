@@ -59,6 +59,15 @@
       </div>
 
 
+      <div class="mb-3 mt-3">
+        <label class="form-label fw-semibold text-secondary small text-uppercase">Club</label>
+        <select class="form-select form-select-sm" v-model="clubName">
+          <option value="">— Selecteer een clubName —</option>
+          <option value="K.V.C. DEINZE VZW">K.V.C. DEINZE VZW</option>
+          <option value="ISOREX CYCLING TEAM">ISOREX CYCLING TEAM</option>
+        </select>
+      </div>
+
       <hr />
 
       <label class="form-label fw-semibold text-secondary small text-uppercase">Result</label>
@@ -80,15 +89,16 @@ createApp({
     return {
       from: threeDaysAgo,
       to:   today,
+      clubName: '',
     };
   },
 
   computed: {
     isValid() {
-      return this.from && this.to;
+      return this.from && this.to && this.clubName;
     },
     output() {
-      return JSON.stringify({ from: this.isoDate(this.from), to: this.isoDate(this.to) }, null, 2);
+      return JSON.stringify({ from: this.isoDate(this.from), to: this.isoDate(this.to), clubName: this.clubName }, null, 2);
     },
   },
 
