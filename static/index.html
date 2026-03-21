@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cycling VL Report</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
@@ -12,14 +13,6 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/nl.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
-    .flatpickr-day.selected,
-    .flatpickr-day.selected:hover  { background: #0d6efd; border-color: #0d6efd; }
-    .flatpickr-day.inRange         {
-      background: #cfe2ff; border-color: #cfe2ff;
-      box-shadow: -5px 0 0 #cfe2ff, 5px 0 0 #cfe2ff;
-    }
-    .flatpickr-day.startRange,
-    .flatpickr-day.endRange        { background: #0d6efd; border-color: #0d6efd; }
     [data-toggle] { cursor: pointer; }
   </style>
 </head>
@@ -41,16 +34,16 @@
           <label class="form-label fw-semibold text-secondary small text-uppercase">Periode</label>
           <div class="row g-2">
             <div class="col-6">
-              <label class="form-label small mb-1 text-muted">Van</label>
+              <label for="from-select" class="form-label small mb-1 text-muted">Van</label>
               <div class="input-group input-group-sm" ref="fromWrap">
-                <input type="text" class="form-control form-control-sm" placeholder="dd/mm/jjjj" data-input />
+                <input id="from-select" type="text" class="form-control form-control-sm" placeholder="dd/mm/jjjj" data-input />
                 <span class="input-group-text" data-toggle><i class="bi bi-calendar"></i></span>
               </div>
             </div>
             <div class="col-6">
-              <label class="form-label small mb-1 text-muted">Tot</label>
+              <label for="to-select" class="form-label small mb-1 text-muted">Tot</label>
               <div class="input-group input-group-sm" ref="toWrap">
-                <input type="text" class="form-control form-control-sm" placeholder="dd/mm/jjjj" data-input />
+                <input id="to-select" type="text" class="form-control form-control-sm" placeholder="dd/mm/jjjj" data-input />
                 <span class="input-group-text" data-toggle><i class="bi bi-calendar"></i></span>
               </div>
             </div>
@@ -59,8 +52,8 @@
 
         <!-- Club -->
         <div class="col-12 col-md-5">
-          <label class="form-label fw-semibold text-secondary small text-uppercase">Team</label>
-          <select class="form-select form-select-sm" v-model="teamName">
+          <label for="team-select" class="form-label fw-semibold text-secondary small text-uppercase">Team</label>
+          <select id="team-select" class="form-select form-select-sm" v-model="teamName">
             <option value="">— Selecteer een team —</option>
             <option value="K.V.C. DEINZE VZW">K.V.C. DEINZE VZW</option>
             <option value="ISOREX CYCLING TEAM">ISOREX CYCLING TEAM</option>
@@ -135,7 +128,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(line, i) in race.lines" :key="i">
+            <tr v-for="line in race.lines">
               <td class="fw-semibold">{{ line.place }}</td>
               <td>{{ line.person.first_name }} {{ line.person.last_name }}</td>
               <td class="text-muted small">{{ line.person.uci_code }}</td>
