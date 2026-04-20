@@ -129,7 +129,7 @@
           </thead>
           <tbody>
             <tr v-for="line in race.lines">
-              <td class="fw-semibold">{{ line.place }}</td>
+              <td class="fw-semibold">{{ line.state === 'did_not_finish' ? 'DNF' : line.place }}</td>
               <td>{{ line.person.first_name }} {{ line.person.last_name }}</td>
               <td class="text-muted small">{{ line.person.uci_code }}</td>
               <td>{{ line.team }}</td>
@@ -274,7 +274,7 @@ createApp({
             Datum:       race.date,
             Stad:        race.city,
             Wedstrijd:   race.description,
-            Plaats:      line.place,
+            Plaats:      line.state === 'did_not_finish' ? 'DNF' : line.place,
             Voornaam:    line.person.first_name,
             Achternaam:  line.person.last_name,
             'UCI code':  line.person.uci_code,
