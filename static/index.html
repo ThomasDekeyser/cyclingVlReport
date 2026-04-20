@@ -133,7 +133,7 @@
               <td>{{ line.person.first_name }} {{ line.person.last_name }}</td>
               <td class="text-muted small">{{ line.person.uci_code }}</td>
               <td>{{ line.team }}</td>
-              <td>{{ line.club.club_name }}</td>
+              <td>{{ line.club?.club_name ?? '' }}</td>
               <td class="text-nowrap">{{ formatTime(line.chrono_in_seconds) }}</td>
             </tr>
           </tbody>
