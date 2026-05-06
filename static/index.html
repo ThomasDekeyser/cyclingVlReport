@@ -149,14 +149,17 @@
 const { createApp, reactive } = Vue;
 
 const CYCLING_API = 'https://cycling.vlaanderen/actions/cycling-api-module/api';
-const CORS_PROXY  = 'https://corsproxy.io/?url=';
+const CORS_PROXY  = 'https://corsproxy.io/?reqHeaders=Accept-Encoding:%20identity&url=';
+const CORS_PROXY_2  = 'https://api.codetabs.com/v1/proxy?quest=';
+
 
 function proxyFetch(params) {
   const targetUrl = `${CYCLING_API}?${new URLSearchParams(params)}`;
-  return fetch(`${CORS_PROXY}${encodeURIComponent(targetUrl)}`).then(r => {
+  const fetchVia = proxy => fetch(`${proxy}${encodeURIComponent(targetUrl)}`).then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
   });
+  return fetchVia(CORS_PROXY).catch(() => fetchVia(CORS_PROXY_2));
 }
 
 createApp({
