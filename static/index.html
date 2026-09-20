@@ -219,11 +219,20 @@ createApp({
         this.fpFrom.set('maxDate', dataset.to_date);
         this.fpTo.set('minDate', dataset.from_date);
         this.fpTo.set('maxDate', dataset.to_date);
-        if (this.isoDate(this.from) < dataset.from_date) {
-          this.fpFrom.setDate(dataset.from_date, true);
+
+        const clampIso = iso =>
+          iso < dataset.from_date ? dataset.from_date
+          : iso > dataset.to_date ? dataset.to_date
+          : iso;
+
+        const clampedFrom = clampIso(this.isoDate(this.from));
+        const clampedTo   = clampIso(this.isoDate(this.to));
+
+        if (clampedFrom !== this.isoDate(this.from)) {
+          this.fpFrom.setDate(clampedFrom, true);
         }
-        if (this.isoDate(this.to) > dataset.to_date) {
-          this.fpTo.setDate(dataset.to_date, true);
+        if (clampedTo !== this.isoDate(this.to)) {
+          this.fpTo.setDate(clampedTo, true);
         }
       })
       .catch(error => {
@@ -285,6 +294,11 @@ createApp({
 
       const from = this.isoDate(this.from);
       const to   = this.isoDate(this.to);
+
+      if (from > to) {
+        this.error = 'De "Van"-datum ligt na de "Tot"-datum.';
+        return;
+      }
 
       this.races = this.dataset.races
         .filter(race => race.date >= from && race.date <= to)
