@@ -151,8 +151,16 @@ def harvest(today, *, fetch=fetch_json, sleep=time.sleep):
 
 def main(argv=None):
     document = harvest(datetime.date.today())
-    write_json(OUTPUT, document)
     races = document["races"]
+    if not races:
+        raise RuntimeError(
+            "harvest returned zero races for "
+            f"{document['from_date']} to {document['to_date']}; refusing to "
+            "overwrite the existing data file (the window always contains "
+            "hundreds of races, so zero indicates an unrecognised or "
+            "throttled upstream response, not a real empty window)"
+        )
+    write_json(OUTPUT, document)
     riders = sum(len(race["lines"]) for race in races)
     print(f"{OUTPUT}: {len(races)} races, {riders} rider lines, "
           f"{document['from_date']} to {document['to_date']}")

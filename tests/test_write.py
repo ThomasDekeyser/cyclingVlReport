@@ -1,6 +1,8 @@
 import datetime
 import json
 
+import pytest
+
 from scripts import harvest
 
 
@@ -53,6 +55,29 @@ def test_harvest_paces_and_builds_document():
     assert all(len(r["lines"]) == 1 for r in doc["races"])
     assert len(seen) == 3
     assert slept == [harvest.PACING_SECONDS]
+
+
+def test_main_raises_and_writes_nothing_when_races_empty(monkeypatch, tmp_path):
+    # A valid-JSON-but-unrecognised races.json payload (throttle page, shape
+    # change, ...) makes select_races() -> harvest() return races: []. main()
+    # must refuse to write that over a known-good file rather than silently
+    # publish an empty dataset.
+    fake_document = {
+        "generated_at": "2026-09-20T03:00:00Z",
+        "from_date": "2026-06-22",
+        "to_date": "2026-09-20",
+        "teams": sorted(harvest.TEAMS),
+        "races": [],
+    }
+    monkeypatch.setattr(harvest, "harvest", lambda today: fake_document)
+
+    output = tmp_path / "results.json"
+    monkeypatch.setattr(harvest, "OUTPUT", str(output))
+
+    with pytest.raises(RuntimeError, match="zero races"):
+        harvest.main()
+
+    assert not output.exists()
 
 
 def test_harvest_keeps_races_with_no_team_lines():

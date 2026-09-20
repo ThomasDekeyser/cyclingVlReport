@@ -154,8 +154,17 @@ async function loadDataset() {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const dataset = await response.json();
   if (!Array.isArray(dataset?.races)) throw new Error('Ongeldig gegevensbestand');
+  if (!Array.isArray(dataset?.teams) || dataset.teams.length === 0) throw new Error('Ongeldig gegevensbestand');
   return dataset;
 }
+
+// flatpickr's set()/setDate() parse a *string* value with the instance's
+// configured dateFormat ('d/m/Y' here), not ISO — so an ISO string like
+// '2026-06-22' is misread and silently falls back to defaults. Build a
+// local-midnight Date instead (component-wise, not `new Date(iso)`, which
+// parses as UTC and can shift a day in negative-offset timezones) so it's
+// consistent with isoDate()'s local-time getters.
+const parseIso = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 
 createApp({
   data() {
@@ -215,10 +224,10 @@ createApp({
     loadDataset()
       .then(dataset => {
         this.dataset = dataset;
-        this.fpFrom.set('minDate', dataset.from_date);
-        this.fpFrom.set('maxDate', dataset.to_date);
-        this.fpTo.set('minDate', dataset.from_date);
-        this.fpTo.set('maxDate', dataset.to_date);
+        this.fpFrom.set('minDate', parseIso(dataset.from_date));
+        this.fpFrom.set('maxDate', parseIso(dataset.to_date));
+        this.fpTo.set('minDate', parseIso(dataset.from_date));
+        this.fpTo.set('maxDate', parseIso(dataset.to_date));
 
         const clampIso = iso =>
           iso < dataset.from_date ? dataset.from_date
@@ -229,10 +238,10 @@ createApp({
         const clampedTo   = clampIso(this.isoDate(this.to));
 
         if (clampedFrom !== this.isoDate(this.from)) {
-          this.fpFrom.setDate(clampedFrom, true);
+          this.fpFrom.setDate(parseIso(clampedFrom), true);
         }
         if (clampedTo !== this.isoDate(this.to)) {
-          this.fpTo.setDate(clampedTo, true);
+          this.fpTo.setDate(parseIso(clampedTo), true);
         }
       })
       .catch(error => {

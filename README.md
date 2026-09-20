@@ -40,10 +40,13 @@ used to rely on have all failed permanently.
 Instead, `.github/workflows/harvest.yml` runs the test suite and then
 `scripts/harvest.py` nightly at 03:00 UTC (also runnable on demand via
 `workflow_dispatch`). The harvester walks a rolling 90-day window and writes
-`static/data/results.json`; the workflow commits the file only when it changed,
-using the repository's built-in `GITHUB_TOKEN`. GitHub Pages serves that file
-same-origin, and the page loads it once and filters by date and team in the
-browser.
+`static/data/results.json`; the workflow commits and pushes the file on every
+successful run, using the repository's built-in `GITHUB_TOKEN`. The file
+always changes because it carries a fresh `generated_at` timestamp each run —
+that timestamp is deliberate: it's the "bijgewerkt" line the UI shows users,
+their only signal that the data is current rather than stuck. GitHub Pages
+serves that file same-origin, and the page loads it once and filters by date
+and team in the browser.
 
 As of the most recent harvest, the file spans 2026-06-22 to 2026-09-20: 702
 races, 820 rider lines, 257 KB on disk (about 23 KB gzipped over the wire).

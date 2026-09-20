@@ -33,6 +33,9 @@ jobs:
 
       - name: Commit if changed
         run: |
+          # `generated_at` is stamped fresh on every successful run, so this
+          # file differs and this branch is taken on every run in practice.
+          # It's kept as a safety net in case that ever stops being true.
           if git diff --quiet -- static/data/results.json; then
             echo "No change; nothing to commit."
             exit 0
