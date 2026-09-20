@@ -48,6 +48,11 @@
               </div>
             </div>
           </div>
+          <div v-if="dataset" class="form-text small mt-1">
+            Gegevens beschikbaar van {{ displayDate(dataset.from_date) }}
+            tot {{ displayDate(dataset.to_date) }}
+            <span class="text-muted">· bijgewerkt {{ displayDateTime(dataset.generated_at) }}</span>
+          </div>
         </div>
 
         <!-- Club -->
@@ -55,8 +60,7 @@
           <label for="team-select" class="form-label fw-semibold text-secondary small text-uppercase">Team</label>
           <select id="team-select" class="form-select form-select-sm" v-model="teamName">
             <option value="">— Selecteer een team —</option>
-            <option value="K.V.C. DEINZE VZW">K.V.C. DEINZE VZW</option>
-            <option value="ISOREX CYCLING TEAM">ISOREX CYCLING TEAM</option>
+            <option v-for="team in dataset?.teams ?? []" :key="team" :value="team">{{ team }}</option>
           </select>
         </div>
 
@@ -209,7 +213,19 @@ createApp({
 
     this.loading = true;
     loadDataset()
-      .then(dataset => { this.dataset = dataset; })
+      .then(dataset => {
+        this.dataset = dataset;
+        this.fpFrom.set('minDate', dataset.from_date);
+        this.fpFrom.set('maxDate', dataset.to_date);
+        this.fpTo.set('minDate', dataset.from_date);
+        this.fpTo.set('maxDate', dataset.to_date);
+        if (this.isoDate(this.from) < dataset.from_date) {
+          this.fpFrom.setDate(dataset.from_date, true);
+        }
+        if (this.isoDate(this.to) > dataset.to_date) {
+          this.fpTo.setDate(dataset.to_date, true);
+        }
+      })
       .catch(error => {
         this.loadError = `Kon de gegevens niet laden: ${error.message}`;
         this.error = this.loadError;
@@ -229,6 +245,20 @@ createApp({
       const m   = (d.getMonth() + 1).toString().padStart(2, '0');
       const day = d.getDate().toString().padStart(2, '0');
       return `${y}-${m}-${day}`;
+    },
+
+    displayDate(iso) {
+      if (!iso) return '';
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}/${y}`;
+    },
+
+    displayDateTime(iso) {
+      if (!iso) return '';
+      const parsed = new Date(iso);
+      return Number.isNaN(parsed.getTime())
+        ? iso
+        : parsed.toLocaleString('nl-BE', { dateStyle: 'short', timeStyle: 'short' });
     },
 
     formatTime(seconds) {
