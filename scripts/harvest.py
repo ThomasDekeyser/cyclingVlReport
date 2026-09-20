@@ -9,6 +9,8 @@ from __future__ import annotations
 import contextlib
 import datetime
 import json
+import os
+import tempfile
 import time
 import urllib.parse
 import urllib.request
@@ -115,3 +117,47 @@ def fetch_json(url, *, opener=_urlopen, attempts=MAX_ATTEMPTS, sleep=time.sleep)
             if attempt < attempts - 1:
                 sleep(2 ** attempt)
     raise RuntimeError(f"giving up on {url} after {attempts} attempts: {last_error}")
+
+
+def write_json(path, document):
+    """Write `document` to `path` atomically."""
+    directory = os.path.dirname(path) or "."
+    os.makedirs(directory, exist_ok=True)
+    handle, temporary = tempfile.mkstemp(dir=directory, suffix=".tmp")
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8") as stream:
+            json.dump(document, stream, ensure_ascii=False, separators=(",", ":"))
+            stream.write("\n")
+        os.replace(temporary, path)
+    except BaseException:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+        raise
+
+
+def harvest(today, *, fetch=fetch_json, sleep=time.sleep):
+    """Fetch the whole window and return the output document."""
+    from_date, to_date = window(today)
+    races = select_races(fetch(races_url(from_date, to_date)))
+    built = []
+    for index, race in enumerate(races):
+        payload = fetch(results_url(race["id"]))
+        built.append(build_race(race, extract_lines(payload, TEAMS)))
+        if index + 1 < len(races):
+            sleep(PACING_SECONDS)
+    generated_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return build_document(from_date, to_date, TEAMS, built, generated_at)
+
+
+def main(argv=None):
+    document = harvest(datetime.date.today())
+    write_json(OUTPUT, document)
+    races = document["races"]
+    riders = sum(len(race["lines"]) for race in races)
+    print(f"{OUTPUT}: {len(races)} races, {riders} rider lines, "
+          f"{document['from_date']} to {document['to_date']}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
