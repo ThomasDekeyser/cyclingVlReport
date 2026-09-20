@@ -166,6 +166,7 @@ createApp({
       loading:  false,
       error:    null,
       dataset:  null,
+      loadError: null,
     };
   },
 
@@ -209,7 +210,10 @@ createApp({
     this.loading = true;
     loadDataset()
       .then(dataset => { this.dataset = dataset; })
-      .catch(error => { this.error = `Kon de gegevens niet laden: ${error.message}`; })
+      .catch(error => {
+        this.loadError = `Kon de gegevens niet laden: ${error.message}`;
+        this.error = this.loadError;
+      })
       .finally(() => { this.loading = false; });
   },
 
@@ -240,7 +244,12 @@ createApp({
       this.races = null;
 
       if (!this.dataset) {
-        this.error = 'Gegevens zijn nog niet geladen.';
+        this.error = this.loadError ?? 'Gegevens zijn nog niet geladen.';
+        return;
+      }
+
+      if (!this.from || !this.to) {
+        this.error = 'Selecteer een geldige van- en tot-datum.';
         return;
       }
 
@@ -251,7 +260,7 @@ createApp({
         .filter(race => race.date >= from && race.date <= to)
         .map(race => ({
           ...race,
-          lines: race.lines.filter(line => line.team === this.teamName),
+          lines: (race.lines ?? []).filter(line => line.team === this.teamName),
         }));
     },
 
