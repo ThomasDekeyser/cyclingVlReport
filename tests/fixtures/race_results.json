@@ -1,0 +1,231 @@
+{
+ "data": {
+  "race_results": [
+   {
+    "race_id": 14344,
+    "duration_in_seconds": 4017,
+    "submitted_at": "2026-09-18T20:00:00.720+02:00",
+    "display_field_1": "#Dln: 57",
+    "display_field_2": "#Opg: 2",
+    "display_field_3": "Afstand: 50.4Km",
+    "display_field_4": "Tijd: 1H06\u00b457\"",
+    "display_field_5": "Gem.Sn: 44.77Km/h",
+    "name": "Hoofdreeks",
+    "position": 1,
+    "distance_in_km": "50.4",
+    "race_category_id": 13,
+    "race_category_code": "GENTL",
+    "participants": 57,
+    "finished": 55,
+    "did_not_finish": 2,
+    "did_not_start": 0,
+    "submitted_by": "WRP Jan De Bie",
+    "T1": "TIJD",
+    "T2": "+",
+    "T3": "",
+    "T4": "",
+    "T5": "",
+    "race_result_lines": [
+     {
+      "chrono_in_seconds": 4017,
+      "deficit_chrono_in_seconds": 0,
+      "place": 1,
+      "number_of_laps": 0,
+      "team": "ISOREX CYCLING TEAM",
+      "state": "finished",
+      "category": "",
+      "submitted_by": "WRP Jan De Bie",
+      "submitted_at": "2026-09-18T20:00:00.726+02:00",
+      "T1": "1H06\u00b457\"",
+      "T2": "",
+      "T3": "",
+      "T4": "",
+      "T5": "",
+      "transponder_code": "T048",
+      "person": {
+       "first_name": "Elyass",
+       "last_name": "PEETERS",
+       "uci_code": "BEL19000101",
+       "ean": null
+      }
+     },
+     {
+      "chrono_in_seconds": 4017,
+      "deficit_chrono_in_seconds": 0,
+      "place": 2,
+      "number_of_laps": 0,
+      "team": "K.V.C. DEINZE VZW",
+      "state": "did_not_finish",
+      "category": "",
+      "submitted_by": "WRP Jan De Bie",
+      "submitted_at": "2026-09-18T20:00:00.726+02:00",
+      "T1": "1H06\u00b457\"",
+      "T2": "",
+      "T3": "",
+      "T4": "",
+      "T5": "",
+      "transponder_code": "T023",
+      "person": {
+       "first_name": "Dave",
+       "last_name": "DONCKERS",
+       "uci_code": "BEL19000101",
+       "ean": null
+      },
+      "club": null
+     },
+     {
+      "chrono_in_seconds": 4017,
+      "deficit_chrono_in_seconds": 0,
+      "place": 3,
+      "number_of_laps": 0,
+      "team": "DEN TOERIST CYCLING",
+      "state": "finished",
+      "category": "CFA",
+      "submitted_by": "WRP Jan De Bie",
+      "submitted_at": "2026-09-18T20:00:00.726+02:00",
+      "T1": "1H06\u00b457\"",
+      "T2": "",
+      "T3": "",
+      "T4": "",
+      "T5": "",
+      "transponder_code": "T041",
+      "person": {
+       "first_name": "Wout",
+       "last_name": "VERHOEVEN",
+       "uci_code": "BEL20020125",
+       "ean": "102012511190"
+      },
+      "club": {
+       "club_number": "02020035",
+       "club_name": "DEN TOERIST CYCLING"
+      }
+     },
+     {
+      "chrono_in_seconds": 4017,
+      "deficit_chrono_in_seconds": 0,
+      "place": 4,
+      "number_of_laps": 0,
+      "team": "DAGPAS",
+      "state": "finished",
+      "category": "",
+      "submitted_by": "WRP Jan De Bie",
+      "submitted_at": "2026-09-18T20:00:00.727+02:00",
+      "T1": "1H06\u00b457\"",
+      "T2": "",
+      "T3": "",
+      "T4": "",
+      "T5": "",
+      "transponder_code": "T051",
+      "person": {
+       "first_name": "Dave",
+       "last_name": "WOUTERS",
+       "uci_code": "BEL19000101",
+       "ean": null
+      },
+      "club": null
+     },
+     {
+      "chrono_in_seconds": 4017,
+      "deficit_chrono_in_seconds": 0,
+      "place": 5,
+      "number_of_laps": 0,
+      "team": "DAGPAS",
+      "state": "finished",
+      "category": "",
+      "submitted_by": "WRP Jan De Bie",
+      "submitted_at": "2026-09-18T20:00:00.727+02:00",
+      "T1": "1H06\u00b457\"",
+      "T2": "",
+      "T3": "",
+      "T4": "",
+      "T5": "",
+      "transponder_code": "T039",
+      "person": {
+       "first_name": "Jens",
+       "last_name": "VAN LAER",
+       "uci_code": "BEL19000101",
+       "ean": null
+      },
+      "club": null
+     },
+     {
+      "chrono_in_seconds": 4017,
+      "deficit_chrono_in_seconds": 0,
+      "place": 6,
+      "number_of_laps": 0,
+      "team": "Individueel",
+      "state": "finished",
+      "category": "CFA",
+      "submitted_by": "WRP Jan De Bie",
+      "submitted_at": "2026-09-18T20:00:00.728+02:00",
+      "T1": "1H06\u00b457\"",
+      "T2": "",
+      "T3": "",
+      "T4": "",
+      "T5": "",
+      "transponder_code": "T057",
+      "person": {
+       "first_name": "Geert",
+       "last_name": "BOONEN",
+       "uci_code": "BEL19860421",
+       "ean": "186042111324"
+      },
+      "club": {
+       "club_number": "09999990",
+       "club_name": "INDIVIDUEEL (provincie Antwerpen)"
+      }
+     },
+     {
+      "chrono_in_seconds": 4017,
+      "deficit_chrono_in_seconds": 0,
+      "place": 7,
+      "number_of_laps": 0,
+      "team": "DAGPAS",
+      "state": "finished",
+      "category": "",
+      "submitted_by": "WRP Jan De Bie",
+      "submitted_at": "2026-09-18T20:00:00.728+02:00",
+      "T1": "1H06\u00b457\"",
+      "T2": "",
+      "T3": "",
+      "T4": "",
+      "T5": "",
+      "transponder_code": "T047",
+      "person": {
+       "first_name": "Lars",
+       "last_name": "MERTENS",
+       "uci_code": "BEL19000101",
+       "ean": null
+      },
+      "club": null
+     },
+     {
+      "chrono_in_seconds": 4043,
+      "deficit_chrono_in_seconds": 26,
+      "place": 8,
+      "number_of_laps": 0,
+      "team": "DAGPAS",
+      "state": "finished",
+      "category": "",
+      "submitted_by": "WRP Jan De Bie",
+      "submitted_at": "2026-09-18T20:00:00.729+02:00",
+      "T1": "1H07\u00b423\"",
+      "T2": "+0\u00b426\"",
+      "T3": "",
+      "T4": "",
+      "T5": "",
+      "transponder_code": "T005",
+      "person": {
+       "first_name": "Rob",
+       "last_name": "KRIJNEN",
+       "uci_code": "BEL19000101",
+       "ean": null
+      },
+      "club": null
+     }
+    ]
+   }
+  ]
+ },
+ "meta": []
+}
