@@ -48,6 +48,11 @@
               </div>
             </div>
           </div>
+          <div v-if="dataset" class="form-text small mt-1">
+            Gegevens beschikbaar van {{ displayDate(dataset.from_date) }}
+            tot {{ displayDate(dataset.to_date) }}
+            <span class="text-muted">· bijgewerkt {{ displayDateTime(dataset.generated_at) }}</span>
+          </div>
         </div>
 
         <!-- Club -->
@@ -55,8 +60,7 @@
           <label for="team-select" class="form-label fw-semibold text-secondary small text-uppercase">Team</label>
           <select id="team-select" class="form-select form-select-sm" v-model="teamName">
             <option value="">— Selecteer een team —</option>
-            <option value="K.V.C. DEINZE VZW">K.V.C. DEINZE VZW</option>
-            <option value="ISOREX CYCLING TEAM">ISOREX CYCLING TEAM</option>
+            <option v-for="team in dataset?.teams ?? []" :key="team" :value="team">{{ team }}</option>
           </select>
         </div>
 
@@ -104,13 +108,8 @@
         <span class="badge bg-secondary">ID {{ race.id }}</span>
       </div>
 
-      <!-- Loading race results -->
-      <div v-if="race.loading" class="card-body py-2 text-muted small">
-        <span class="spinner-border spinner-border-sm me-1"></span> Uitslagen laden…
-      </div>
-
       <!-- No club results -->
-      <div v-else-if="race.lines && race.lines.length === 0" class="card-body py-2 text-muted fst-italic small">
+      <div v-if="race.lines && race.lines.length === 0" class="card-body py-2 text-muted fst-italic small">
         Geen renners van {{ teamName }} in deze uitslag.
       </div>
 
@@ -146,21 +145,26 @@
 </div>
 
 <script>
-const { createApp, reactive } = Vue;
+const { createApp } = Vue;
 
-const CYCLING_API = 'https://cycling.vlaanderen/actions/cycling-api-module/api';
-const CORS_PROXY  = 'https://corsproxy.io/?reqHeaders=Accept-Encoding:%20identity&url=';
-const CORS_PROXY_2  = 'https://api.codetabs.com/v1/proxy?quest=';
+const DATA_URL = 'data/results.json';
 
-
-function proxyFetch(params) {
-  const targetUrl = `${CYCLING_API}?${new URLSearchParams(params)}`;
-  const fetchVia = proxy => fetch(`${proxy}${encodeURIComponent(targetUrl)}`).then(r => {
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
-  });
-  return fetchVia(CORS_PROXY).catch(() => fetchVia(CORS_PROXY_2));
+async function loadDataset() {
+  const response = await fetch(DATA_URL, { cache: 'no-cache' });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const dataset = await response.json();
+  if (!Array.isArray(dataset?.races)) throw new Error('Ongeldig gegevensbestand');
+  if (!Array.isArray(dataset?.teams) || dataset.teams.length === 0) throw new Error('Ongeldig gegevensbestand');
+  return dataset;
 }
+
+// flatpickr's set()/setDate() parse a *string* value with the instance's
+// configured dateFormat ('d/m/Y' here), not ISO — so an ISO string like
+// '2026-06-22' is misread and silently falls back to defaults. Build a
+// local-midnight Date instead (component-wise, not `new Date(iso)`, which
+// parses as UTC and can shift a day in negative-offset timezones) so it's
+// consistent with isoDate()'s local-time getters.
+const parseIso = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 
 createApp({
   data() {
@@ -174,6 +178,8 @@ createApp({
       races:    null,
       loading:  false,
       error:    null,
+      dataset:  null,
+      loadError: null,
     };
   },
 
@@ -213,6 +219,36 @@ createApp({
       defaultDate: this.to,
       onChange: ([date]) => { this.to = date || null; },
     });
+
+    this.loading = true;
+    loadDataset()
+      .then(dataset => {
+        this.dataset = dataset;
+        this.fpFrom.set('minDate', parseIso(dataset.from_date));
+        this.fpFrom.set('maxDate', parseIso(dataset.to_date));
+        this.fpTo.set('minDate', parseIso(dataset.from_date));
+        this.fpTo.set('maxDate', parseIso(dataset.to_date));
+
+        const clampIso = iso =>
+          iso < dataset.from_date ? dataset.from_date
+          : iso > dataset.to_date ? dataset.to_date
+          : iso;
+
+        const clampedFrom = clampIso(this.isoDate(this.from));
+        const clampedTo   = clampIso(this.isoDate(this.to));
+
+        if (clampedFrom !== this.isoDate(this.from)) {
+          this.fpFrom.setDate(parseIso(clampedFrom), true);
+        }
+        if (clampedTo !== this.isoDate(this.to)) {
+          this.fpTo.setDate(parseIso(clampedTo), true);
+        }
+      })
+      .catch(error => {
+        this.loadError = `Kon de gegevens niet laden: ${error.message}`;
+        this.error = this.loadError;
+      })
+      .finally(() => { this.loading = false; });
   },
 
   beforeUnmount() {
@@ -229,6 +265,20 @@ createApp({
       return `${y}-${m}-${day}`;
     },
 
+    displayDate(iso) {
+      if (!iso) return '';
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}/${y}`;
+    },
+
+    displayDateTime(iso) {
+      if (!iso) return '';
+      const parsed = new Date(iso);
+      return Number.isNaN(parsed.getTime())
+        ? iso
+        : parsed.toLocaleString('nl-BE', { dateStyle: 'short', timeStyle: 'short' });
+    },
+
     formatTime(seconds) {
       if (!seconds) return '—';
       const h = Math.floor(seconds / 3600);
@@ -237,35 +287,34 @@ createApp({
       return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
     },
 
-    async search() {
-      this.error   = null;
-      this.races   = null;
-      this.loading = true;
+    search() {
+      this.error = null;
+      this.races = null;
 
-      try {
-        const json = await proxyFetch({
-          method:     'races.json',
-          from_date:  this.isoDate(this.from),
-          to_date:    this.isoDate(this.to),
-          provinces:  '',
-          categories: '',
-        });
-
-        const allRaces = (json?.data?.races ?? [])
-          .filter(r => r.result === 1)
-          .sort((a, b) => b.date.localeCompare(a.date));
-
-        // Build reactive race objects with a loading flag
-        this.races = allRaces.map(r => reactive({ ...r, lines: null, loading: true }));
-
-        // Fetch all race results in parallel
-        await Promise.all(this.races.map(race => this.fetchRaceResults(race)));
-
-      } catch (e) {
-        this.error = `Kon de gegevens niet ophalen: ${e.message}`;
-      } finally {
-        this.loading = false;
+      if (!this.dataset) {
+        this.error = this.loadError ?? 'Gegevens zijn nog niet geladen.';
+        return;
       }
+
+      if (!this.from || !this.to) {
+        this.error = 'Selecteer een geldige van- en tot-datum.';
+        return;
+      }
+
+      const from = this.isoDate(this.from);
+      const to   = this.isoDate(this.to);
+
+      if (from > to) {
+        this.error = 'De "Van"-datum ligt na de "Tot"-datum.';
+        return;
+      }
+
+      this.races = this.dataset.races
+        .filter(race => race.date >= from && race.date <= to)
+        .map(race => ({
+          ...race,
+          lines: (race.lines ?? []).filter(line => line.team === this.teamName),
+        }));
     },
 
     exportExcel() {
@@ -292,19 +341,6 @@ createApp({
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Uitslagen');
       XLSX.writeFile(wb, `cyclingVlReport-${this.isoDate(this.from)}_${this.isoDate(this.to)}_${this.teamName.replaceAll(' ','_')}.xlsx`);
-    },
-
-    async fetchRaceResults(race) {
-      try {
-        const json = await proxyFetch({ method: 'race_results.json', race_id: race.id });
-        const allLines = (json?.data?.race_results ?? [])
-          .flatMap(rr => rr.race_result_lines ?? []);
-        race.lines = allLines.filter(l => l.team === this.teamName);
-      } catch {
-        race.lines = [];
-      } finally {
-        race.loading = false;
-      }
     },
   },
 }).mount('#app');

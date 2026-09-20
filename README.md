@@ -1,14 +1,16 @@
 # Cycling VL Report
 
-A static single-page app built with Vue.js and Bootstrap that queries the [cycling.vlaanderen](https://cycling.vlaanderen) API to show race results for a selected team within a chosen date range. Results can be exported to Excel.
+A static single-page app built with Vue.js and Bootstrap that shows race results for a selected team within a chosen date range, using data harvested nightly from the [cycling.vlaanderen](https://cycling.vlaanderen) API. Results can be exported to Excel.
 
 **Live:** https://ThomasDekeyser.github.io/cyclingVlReport/static/index.html
 
 ---
 
 ## Local setup with Hugo
-A local running web server is required to bypass CORS issues when fetching data from the cycling.vlaanderen API using corsproxy.io   
-Hugo's built-in server is a convenient option for this.
+
+The page is plain static HTML; Hugo's built-in server is just a convenient way
+to serve it locally so that the relative `data/results.json` path resolves.
+
 ### Prerequisites
 
 - [Hugo](https://gohugo.io/) extended edition (v0.100+)
@@ -29,33 +31,58 @@ The app is then available at http://localhost:1313/index.html.
 
 ---
 
-## API
+## Data
 
-All requests are routed through [corsproxy.io](https://corsproxy.io) to work around the missing `Access-Control-Allow-Origin` header on the cycling.vlaanderen API.
+The page does **not** call the cycling.vlaanderen API at runtime. That API sends
+no `Access-Control-Allow-Origin` header, and the public CORS proxies this project
+used to rely on have all failed permanently.
 
-### 1. Race list
+Instead, `.github/workflows/harvest.yml` runs the test suite and then
+`scripts/harvest.py` nightly at 03:00 UTC (also runnable on demand via
+`workflow_dispatch`). The harvester walks a rolling 90-day window and writes
+`static/data/results.json`; the workflow commits and pushes the file on every
+successful run, using the repository's built-in `GITHUB_TOKEN`. The file
+always changes because it carries a fresh `generated_at` timestamp each run —
+that timestamp is deliberate: it's the "bijgewerkt" line the UI shows users,
+their only signal that the data is current rather than stuck. GitHub Pages
+serves that file same-origin, and the page loads it once and filters by date
+and team in the browser.
 
-Fetch races within a date range:
+As of the most recent harvest, the file spans 2026-06-22 to 2026-09-20: 702
+races, 820 rider lines, 257 KB on disk (about 23 KB gzipped over the wire).
 
-```
-GET https://cycling.vlaanderen/actions/cycling-api-module/api
-  ?method=races.json
-  &from_date=YYYY-MM-DD
-  &to_date=YYYY-MM-DD
-  &provinces=
-  &categories=
-```
+### Running the harvest by hand
 
-Returns a list of races. Only races with `result = 1` (i.e. results have been submitted) are used.
-
-### 2. Race results
-
-Fetch detailed results for a single race:
-
-```
-GET https://cycling.vlaanderen/actions/cycling-api-module/api
-  ?method=race_results.json
-  &race_id={id}
+```bash
+python3 -m scripts.harvest      # roughly 700 requests, about 6 minutes
+python3 -m pytest tests/ -q     # 23 offline unit tests
 ```
 
-Returns `race_results`, each containing `race_result_lines`. Lines are filtered by `team` matching the selected team name. Displayed fields: place, first name, last name, UCI code, team, club, time.
+### Adding a team
+
+Add the exact team name to `TEAMS` in `scripts/harvest.py`, then re-run the
+harvest. The dropdown is built from the `teams` array in the data file, so no
+HTML change is needed.
+
+### Data contract
+
+`static/data/results.json`:
+
+- `generated_at`, `from_date`, `to_date` — window metadata, shown in the UI
+- `teams` — the configured team names; drives the dropdown
+- `races[]` — every race with a submitted result in the window, including those
+  with no riders from the configured teams (`lines: []`)
+- `races[].lines[]` — only lines whose `team` is in `teams`. Field names mirror
+  the upstream API. `club` is `null` when absent upstream.
+
+### Upstream endpoints (used by the harvester only)
+
+```
+GET https://cycling.vlaanderen/actions/cycling-api-module/api?method=races.json
+      &from_date=YYYY-MM-DD&to_date=YYYY-MM-DD&provinces=&categories=
+GET https://cycling.vlaanderen/actions/cycling-api-module/api?method=race_results.json
+      &race_id={id}
+```
+
+Only races with `result = 1` are harvested. The origin throttles concurrent
+requests, so the harvester is deliberately serial and paced.
