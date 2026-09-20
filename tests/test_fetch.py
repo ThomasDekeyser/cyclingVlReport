@@ -65,9 +65,28 @@ def test_fetch_json_retries_then_succeeds():
 
 
 def test_fetch_json_gives_up_and_raises():
+    calls = []
+
     def opener(url):
+        calls.append(url)
         raise OSError("always down")
 
     with pytest.raises(RuntimeError) as excinfo:
         harvest.fetch_json("http://x", opener=opener, attempts=2, sleep=lambda s: None)
     assert "http://x" in str(excinfo.value)
+    assert len(calls) == 2
+
+
+def test_urlopen_sends_user_agent_header(monkeypatch):
+    captured_request = None
+
+    def fake_urlopen(request, timeout=None):
+        nonlocal captured_request
+        captured_request = request
+        return FakeResponse('{"ok": true}')
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    harvest._urlopen("http://example.com")
+
+    assert captured_request is not None
+    assert captured_request.get_header("User-agent") == harvest.USER_AGENT
