@@ -77,3 +77,9 @@ def test_build_document_shape():
         "teams": sorted(TEAMS),
         "races": [],
     }
+
+
+def test_build_document_sorts_teams_regardless_of_input_order():
+    unsorted_teams = ["K.V.C. DEINZE VZW", "ISOREX CYCLING TEAM"]
+    doc = harvest.build_document("2026-06-22", "2026-09-20", unsorted_teams, [], "2026-09-20T03:00:12Z")
+    assert doc["teams"] == ["ISOREX CYCLING TEAM", "K.V.C. DEINZE VZW"]
