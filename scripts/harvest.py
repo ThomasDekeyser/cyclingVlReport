@@ -6,6 +6,13 @@ served same-origin with no CORS proxy.
 """
 from __future__ import annotations
 
+import contextlib
+import datetime
+import json
+import time
+import urllib.parse
+import urllib.request
+
 API = "https://cycling.vlaanderen/actions/cycling-api-module/api"
 TEAMS = ["ISOREX CYCLING TEAM", "K.V.C. DEINZE VZW"]
 WINDOW_DAYS = 90
@@ -66,3 +73,45 @@ def build_document(from_date, to_date, teams, races, generated_at):
         "teams": sorted(teams),
         "races": races,
     }
+
+
+def races_url(from_date, to_date):
+    query = urllib.parse.urlencode({
+        "method": "races.json",
+        "from_date": from_date,
+        "to_date": to_date,
+        "provinces": "",
+        "categories": "",
+    })
+    return f"{API}?{query}"
+
+
+def results_url(race_id):
+    query = urllib.parse.urlencode({
+        "method": "race_results.json",
+        "race_id": race_id,
+    })
+    return f"{API}?{query}"
+
+
+def window(today, days=WINDOW_DAYS):
+    return (today - datetime.timedelta(days=days)).isoformat(), today.isoformat()
+
+
+def _urlopen(url):
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    return urllib.request.urlopen(request, timeout=30)
+
+
+def fetch_json(url, *, opener=_urlopen, attempts=MAX_ATTEMPTS, sleep=time.sleep):
+    """GET `url` and parse JSON, retrying with backoff. Raises on give-up."""
+    last_error = None
+    for attempt in range(attempts):
+        try:
+            with contextlib.closing(opener(url)) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except Exception as error:  # noqa: BLE001 - retry on anything transient
+            last_error = error
+            if attempt < attempts - 1:
+                sleep(2 ** attempt)
+    raise RuntimeError(f"giving up on {url} after {attempts} attempts: {last_error}")
