@@ -48,11 +48,6 @@
               </div>
             </div>
           </div>
-          <div v-if="dataset" class="form-text small mt-1">
-            Gegevens beschikbaar van {{ displayDate(dataset.from_date) }}
-            tot {{ displayDate(dataset.to_date) }}
-            <span class="text-muted">· bijgewerkt {{ displayDateTime(dataset.generated_at) }}</span>
-          </div>
         </div>
 
         <!-- Club -->
@@ -81,6 +76,12 @@
           </button>
         </div>
 
+      </div>
+
+      <div v-if="dataset" class="form-text small mt-2 mb-0">
+        Gegevens beschikbaar van {{ displayDate(dataset.from_date) }}
+        tot {{ displayDate(dataset.to_date) }}
+        <span class="text-muted">· bijgewerkt {{ displayDateTime(dataset.generated_at) }}</span>
       </div>
 
       <div v-if="error" class="alert alert-danger mt-3 mb-0 py-2 small">
